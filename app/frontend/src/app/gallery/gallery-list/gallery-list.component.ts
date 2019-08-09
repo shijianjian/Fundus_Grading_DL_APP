@@ -30,8 +30,14 @@ export class GalleryListComponent implements OnInit, OnDestroy {
       if (data) {
         this.dataSource = data['csv'];
         this.docHeaders = data['header'];
-        this.columnsToDisplay = ['select'].concat(data['header']).concat(['load', 'run', 'pred_gradability', 'pred_area', 'pred_site'])
-        this.selection.clear()
+        this.columnsToDisplay = ['select'].concat(data['header']).concat(['load', 'run']);
+        ['pred_gradability', 'pred_area', 'pred_site'].forEach((val, idx, arr) => {
+          if (this.columnsToDisplay.includes(val)) {
+            this.columnsToDisplay.splice(idx, 1);
+          }
+          this.columnsToDisplay.push(val);
+        })
+        this.selection.clear();
         console.log(data);
       }
     })

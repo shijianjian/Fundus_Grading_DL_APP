@@ -2,7 +2,7 @@
     <button *ngIf='dataSource.length != 0' mat-stroked-button color="primary" (click)='predictAll($event)'>Run</button>
     <button *ngIf='dataSource.length != 0' mat-stroked-button color="warn" (click)='exportAsCSV()'>Export</button>
 </div>
-<table mat-table
+<table *ngIf='dataSource.length != 0' mat-table
        [dataSource]="dataSource" multiTemplateDataRows
        class="mat-elevation-z8">
     <!-- Checkbox Column -->
