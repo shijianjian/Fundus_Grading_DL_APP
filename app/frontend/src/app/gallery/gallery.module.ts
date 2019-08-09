@@ -5,14 +5,12 @@ import { MatTableModule, MatCheckboxModule, MatIconModule, MatDialogModule, MatP
 import { GalleryListComponent } from './gallery-list/gallery-list.component';
 import { GalleryComponent } from './gallery.component';
 import { CSVService } from './csv.service';
-import { ImageViewerComponent } from './image-viewer/image-viewer.component';
 
 
 @NgModule({
   declarations: [
     GalleryComponent,
     GalleryListComponent,
-    ImageViewerComponent
   ],
   imports: [
     CommonModule,

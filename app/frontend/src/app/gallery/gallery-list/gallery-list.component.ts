@@ -38,7 +38,8 @@ export class GalleryListComponent implements OnInit, OnDestroy {
           this.columnsToDisplay.push(val);
         })
         this.selection.clear();
-        console.log(data);
+        console.debug(data);
+        console.debug(this.columnsToDisplay)
       }
     })
   }
