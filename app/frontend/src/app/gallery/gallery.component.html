@@ -1,2 +1,4 @@
 <input type="file" #csvReader name="Upload CSV" id="txtFileUpload" (change)="uploadListener($event)" accept=".csv">
+<input type="button" (click)="loadSamples($event)" value="LoadSamples">
+<!-- <input type="file" name="Upload Image" (change)="uploadListener($event)"> -->
 <app-gallery-list></app-gallery-list>

@@ -8,6 +8,8 @@ import numpy as np
 import time
 import urllib
 import base64
+import io
+from PIL import Image
 
 app = Flask(__name__)
 CORS(app)
@@ -127,9 +129,15 @@ def predict_local(model):
 @app.route("/image/local", methods=['GET'])
 def return_image():
     path = urllib.parse.unquote(request.args.get('path'))
-    with open(path, 'rb') as image_file:
-        base64_image = base64.b64encode(image_file.read()).decode('UTF-8')
-        print(type(base64_image))
+    if path.endswith('.tif') or path.endswith('.tiff'):
+        img = Image.open(path)
+        buffer = io.BytesIO()
+        img.save(buffer, "JPEG")
+        content = buffer.getvalue()
+        base64_image = base64.b64encode(content).decode('UTF-8')
+    else:
+        with open(path, 'rb') as image_file:
+            base64_image = base64.b64encode(image_file.read()).decode('UTF-8')
     return app.response_class(
         response=json.dumps({'image': base64_image}),
         status=200,

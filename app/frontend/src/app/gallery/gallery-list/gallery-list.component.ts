@@ -83,6 +83,13 @@ export class GalleryListComponent implements OnInit, OnDestroy {
     }));
   }
 
+  imageLaunchListener(idx: number) {
+    const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']))
+    return this.http.get('http://127.0.0.1:5000/image/local', {params}).pipe(take(1)).subscribe(image => {
+      this.dataSource[idx]['base64_src'] = 'data:image/png;base64,' + image['image'];
+    })
+  }
+
   async sendToPrediction(idx) {
     this.dataSource[idx]['running'] = true
     return await this.getPrediction(idx).pipe(take(1)).toPromise().then(

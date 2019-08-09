@@ -17,6 +17,7 @@ export class GalleryComponent {
   
     let text = [];  
     let files = $event.srcElement.files;  
+    console.log($event)
   
     if (this.isValidCSVFile(files[0])) {  
   
@@ -27,7 +28,10 @@ export class GalleryComponent {
       reader.onload = () => {  
         let csvData = reader.result;  
         let csvRecordsArray = (<string>csvData).split(/\r\n|\n/);  
-        let headersRow = this.getHeaderArray(csvRecordsArray);  
+        let headersRow = this.getHeaderArray(csvRecordsArray);
+        if (!headersRow.includes('filepath')) {
+          alert("No column named 'filepath'. Inference will not be runnable.")
+        }
         this.records = this.getDataRecordsArrayFromCSVFile(csvRecordsArray, headersRow);
         this.csvService.sendCSV(this.records, headersRow);
       };  
@@ -72,6 +76,21 @@ export class GalleryComponent {
   fileReset() {  
     this.csvReader.nativeElement.value = "";  
     this.records = [];  
-  }  
+  }
+
+  loadSamples() {
+    let x = [
+      {
+        'filepath': '/raid/datasets/Harmy/HD/fundus/HD035/Y1^2012-03-28/SW00)-HZ.009.JPG'
+      },
+      {
+        'filepath': '/raid/datasets/ARED/fundus/ARED021/M00/ARED021_20170629_164712_Color_R_001.tif'
+      },
+      {
+        'filepath': '/raid/datasets/Harmy/HD/fundus/HD004/Y2^2012-08-31/SH00)2NZ.006.JPG'
+      },
+    ]
+    this.csvService.sendCSV(x, ['filepath']);
+  }
 
 }
