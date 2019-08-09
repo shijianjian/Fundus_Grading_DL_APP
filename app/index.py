@@ -7,6 +7,7 @@ import os
 import numpy as np
 import time
 import urllib
+import base64
 
 app = Flask(__name__)
 CORS(app)
@@ -118,6 +119,19 @@ def predict_local(model):
             'time_elapsed': time.process_time() - start,
             'results': res
         }),
+        status=200,
+        mimetype='application/json'
+    )
+
+
+@app.route("/image/local", methods=['GET'])
+def return_image():
+    path = urllib.parse.unquote(request.args.get('path'))
+    with open(path, 'rb') as image_file:
+        base64_image = base64.b64encode(image_file.read()).decode('UTF-8')
+        print(type(base64_image))
+    return app.response_class(
+        response=json.dumps({'image': base64_image}),
         status=200,
         mimetype='application/json'
     )

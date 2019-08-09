@@ -2,8 +2,8 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { SelectionModel } from '@angular/cdk/collections';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import { CSVService } from '../csv.service';
-import { Subscription } from 'rxjs';
-import { take } from 'rxjs/operators';
+import { Subscription, forkJoin, of, Observable } from 'rxjs';
+import { take, switchMap } from 'rxjs/operators';
 import { HttpClient, HttpParams } from '@angular/common/http';
 
 @Component({
@@ -20,12 +20,12 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 })
 export class GalleryListComponent implements OnInit, OnDestroy {
   dataSource = []
-  subscription: Subscription;
+  csvSubscription: Subscription;
   columnsToDisplay = []
   selection = new SelectionModel<any>(true, []);
 
   constructor(private csvService: CSVService, private http: HttpClient) {
-    this.subscription = this.csvService.getCSV().subscribe(data => {
+    this.csvSubscription = this.csvService.getCSV().subscribe(data => {
       if (data) {
         this.dataSource = data['csv'];
         this.columnsToDisplay = ['select'].concat(data['header']).concat(['explore', 'run', 'pred_gradability', 'pred_area', 'pred_site'])
@@ -39,7 +39,7 @@ export class GalleryListComponent implements OnInit, OnDestroy {
 
   ngOnDestroy() {
     // unsubscribe to ensure no memory leaks
-    this.subscription.unsubscribe();
+    this.csvSubscription.unsubscribe();
   }
 
   /** Whether the number of selected elements matches the total number of rows. */
@@ -53,7 +53,7 @@ export class GalleryListComponent implements OnInit, OnDestroy {
   masterToggle() {
     this.isAllSelected() ?
         this.selection.clear() :
-        this.dataSource.forEach(row => this.selection.select(row));
+        this.dataSource.forEach((val, idx, arr) => this.selection.select(idx));
   }
 
   /** The label for the checkbox on the passed row */
@@ -64,33 +64,57 @@ export class GalleryListComponent implements OnInit, OnDestroy {
     return `${this.selection.isSelected(row) ? 'deselect' : 'select'} row ${row.position + 1}`;
   }
 
-  sendToPrediction(idx, event) {
-    const params = new HttpParams().set('path', encodeURI(event['filepath']))
-    // let res = {}
-    this.http.get('http://127.0.0.1:5000/gradability/predict/local', {params}).pipe(take(1)).subscribe(
-      data => {
-        this.dataSource[idx]['pred_gradability'] = data['results'];
-        if (data['results'] == 'Gradable') {
-          this.http.get('http://127.0.0.1:5000/area_tagging/predict/local', {params}).pipe(take(1)).subscribe(
-            data => {
-              // res['area'] = data['results'];
-              this.dataSource[idx]['pred_area'] = data['results'];
-              console.log(this.dataSource[idx])
-            }
-          );
-          this.http.get('http://127.0.0.1:5000/site_tagging/predict/local', {params}).pipe(take(1)).subscribe(
-            data => {
-              // res['site'] = data['results'];
-              this.dataSource[idx]['pred_site'] = data['results'];
-              console.log(this.dataSource[idx])
-            }
-          );
+  getPrediction(idx: number): Observable<any[]> {
+    const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']))
+    return this.http.get('http://127.0.0.1:5000/gradability/predict/local', {params}).pipe(switchMap((x: any) => {
+      if (x['results'] == 'Gradable') {
+        return forkJoin([
+          of(idx),
+          of(x),
+          this.http.get('http://127.0.0.1:5000/area_tagging/predict/local', {params}),
+          this.http.get('http://127.0.0.1:5000/site_tagging/predict/local', {params})
+        ]);
+      } else {
+        return forkJoin([
+          of(idx),
+          of(x),
+        ]);
+      }
+    }));
+  }
+
+  async sendToPrediction(idx) {
+    this.dataSource[idx]['running'] = true
+    return await this.getPrediction(idx).pipe(take(1)).toPromise().then(
+      (data: any[]) => {
+        console.log(data)
+        this.dataSource[data[0]]['pred_gradability'] = data[1]['results'];
+        if (data.length != 2) {
+          this.dataSource[data[0]]['pred_area'] = data[2]['results'];
+          this.dataSource[data[0]]['pred_site'] = data[3]['results'];
         }
+        this.dataSource[data[0]]['running'] = false
       },
       error => {
-        console.log(error)
+        console.log(error);
       }
     );
+  }
+
+  async predictAll() {
+    // console.log(this.selection);
+    let arrs: Observable<Observable<any>[]>[] = []
+    for (let val of this.selection.selected) {
+      this.dataSource[val]['running'] = true;
+      // arrs.push(this.getPrediction(val));
+      let data = await this.getPrediction(val).toPromise().then(data => data);
+      this.dataSource[data[0]]['pred_gradability'] = data[1]['results'];
+      if (data.length != 2) {
+        this.dataSource[data[0]]['pred_area'] = data[2]['results'];
+        this.dataSource[data[0]]['pred_site'] = data[3]['results'];
+      }
+      this.dataSource[data[0]]['running'] = false
+    }
   }
 
 }

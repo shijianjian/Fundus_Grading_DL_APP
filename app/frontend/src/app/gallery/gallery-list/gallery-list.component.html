@@ -1,3 +1,4 @@
+<button mat-stroked-button color="primary" (click)='predictAll($event)'>Run</button>
 <table mat-table
        [dataSource]="dataSource" multiTemplateDataRows
        class="mat-elevation-z8">
@@ -11,11 +12,11 @@
                         [aria-label]="checkboxLabel()">
             </mat-checkbox>
         </th>
-        <td mat-cell *matCellDef="let element">
+        <td mat-cell *matCellDef="let element; let i = dataIndex;">
             <mat-checkbox (click)="$event.stopPropagation()"
-                        (change)="$event ? selection.toggle(element) : null"
-                        [checked]="selection.isSelected(element)"
-                        [aria-label]="checkboxLabel(element)">
+                        (change)="$event ? selection.toggle(i) : null"
+                        [checked]="selection.isSelected(i)"
+                        [aria-label]="checkboxLabel(i)">
             </mat-checkbox>
         </td>
     </ng-container>
@@ -26,7 +27,12 @@
     </ng-container>
     <ng-container *ngIf="column == 'run'">
         <td mat-cell *matCellDef="let element; let i = dataIndex;">
-            <mat-icon class="example-icon" aria-hidden="false" (click)='sendToPrediction(i, element)' aria-label="Example heart icon">play_arrow</mat-icon>
+            <ng-container *ngIf="element['running'] != true">
+              <mat-icon class="example-icon" aria-hidden="false" (click)='sendToPrediction(i)' aria-label="Example heart icon">play_arrow</mat-icon>
+            </ng-container>
+            <ng-container *ngIf="element['running'] == true">
+              <mat-spinner [diameter]="15"></mat-spinner>
+            </ng-container>
         </td>
     </ng-container>
     <th mat-header-cell *matHeaderCellDef>
