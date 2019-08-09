@@ -1,4 +1,4 @@
-<input type="file" #csvReader name="Upload CSV" id="txtFileUpload" (change)="uploadListener($event)" accept=".csv">
-<input type="button" (click)="loadSamples($event)" value="LoadSamples">
-<!-- <input type="file" name="Upload Image" (change)="uploadListener($event)"> -->
+<button type="button" mat-raised-button color="warn" (click)="csvReader.click()">Choose File</button>
+<input type="file" hidden #csvReader name="Upload CSV" id="txtFileUpload" (change)="uploadListener($event)" accept=".csv">
+<button mat-button color="warn" (click)="loadSamples($event)">Load Samples</button>
 <app-gallery-list></app-gallery-list>

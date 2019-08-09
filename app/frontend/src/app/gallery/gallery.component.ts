@@ -1,5 +1,7 @@
 import { Component, ViewChild } from '@angular/core';
 import { CSVService } from './csv.service';
+import { take } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
 
 @Component({
   selector: 'app-gallery',
@@ -8,7 +10,7 @@ import { CSVService } from './csv.service';
 })
 export class GalleryComponent {
 
-  constructor(private csvService: CSVService) { }
+  constructor(private csvService: CSVService, private http: HttpClient) { }
 
   public records: any[] = [];  
   @ViewChild('csvReader') csvReader: any;  
@@ -34,7 +36,7 @@ export class GalleryComponent {
         }
         this.records = this.getDataRecordsArrayFromCSVFile(csvRecordsArray, headersRow);
         this.csvService.sendCSV(this.records, headersRow);
-      };  
+      };
   
       reader.onerror = function () {  
         console.log('error is occured while reading file!');  
@@ -60,7 +62,7 @@ export class GalleryComponent {
     return csvArr;  
   }  
   
-  isValidCSVFile(file: any) {  
+  isValidCSVFile(file: any) {
     return file.name.endsWith(".csv");  
   }  
   
@@ -79,18 +81,13 @@ export class GalleryComponent {
   }
 
   loadSamples() {
-    let x = [
-      {
-        'filepath': '/raid/datasets/Harmy/HD/fundus/HD035/Y1^2012-03-28/SW00)-HZ.009.JPG'
-      },
-      {
-        'filepath': '/raid/datasets/ARED/fundus/ARED021/M00/ARED021_20170629_164712_Color_R_001.tif'
-      },
-      {
-        'filepath': '/raid/datasets/Harmy/HD/fundus/HD004/Y2^2012-08-31/SH00)2NZ.006.JPG'
-      },
-    ]
-    this.csvService.sendCSV(x, ['filepath']);
+    let x = [];
+    this.http.get('http://127.0.0.1:5000/image/load_samples').pipe(take(1)).subscribe((data) => {
+      data['samples'].forEach((val, idx, arr) => {
+        x.push({'filepath': val});
+      })
+      this.csvService.sendCSV(x, ['filepath']);
+    });
   }
 
 }

@@ -19,16 +19,19 @@ import { HttpClient, HttpParams } from '@angular/common/http';
   ],
 })
 export class GalleryListComponent implements OnInit, OnDestroy {
-  dataSource = []
+  dataSource = [];
   csvSubscription: Subscription;
-  columnsToDisplay = []
+  columnsToDisplay = [];
+  docHeaders = [];
   selection = new SelectionModel<any>(true, []);
 
   constructor(private csvService: CSVService, private http: HttpClient) {
     this.csvSubscription = this.csvService.getCSV().subscribe(data => {
       if (data) {
         this.dataSource = data['csv'];
-        this.columnsToDisplay = ['select'].concat(data['header']).concat(['explore', 'run', 'pred_gradability', 'pred_area', 'pred_site'])
+        this.docHeaders = data['header'];
+        this.columnsToDisplay = ['select'].concat(data['header']).concat(['load', 'run', 'pred_gradability', 'pred_area', 'pred_site'])
+        this.selection.clear()
         console.log(data);
       }
     })
@@ -84,17 +87,18 @@ export class GalleryListComponent implements OnInit, OnDestroy {
   }
 
   imageLaunchListener(idx: number) {
-    const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']))
+    this.dataSource[idx]['base64_src_loading'] = true;
+    const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']));
     return this.http.get('http://127.0.0.1:5000/image/local', {params}).pipe(take(1)).subscribe(image => {
       this.dataSource[idx]['base64_src'] = 'data:image/png;base64,' + image['image'];
-    })
+      this.dataSource[idx]['base64_src_loading'] = false;
+    });
   }
 
   async sendToPrediction(idx) {
     this.dataSource[idx]['running'] = true
     return await this.getPrediction(idx).pipe(take(1)).toPromise().then(
       (data: any[]) => {
-        console.log(data)
         this.dataSource[data[0]]['pred_gradability'] = data[1]['results'];
         if (data.length != 2) {
           this.dataSource[data[0]]['pred_area'] = data[2]['results'];
@@ -109,19 +113,41 @@ export class GalleryListComponent implements OnInit, OnDestroy {
   }
 
   async predictAll() {
+    if (this.selection.selected.length == 0) {
+      alert("No data selected");
+      return
+    }
     // console.log(this.selection);
     let arrs: Observable<Observable<any>[]>[] = []
     for (let val of this.selection.selected) {
-      this.dataSource[val]['running'] = true;
-      // arrs.push(this.getPrediction(val));
-      let data = await this.getPrediction(val).toPromise().then(data => data);
-      this.dataSource[data[0]]['pred_gradability'] = data[1]['results'];
-      if (data.length != 2) {
-        this.dataSource[data[0]]['pred_area'] = data[2]['results'];
-        this.dataSource[data[0]]['pred_site'] = data[3]['results'];
-      }
-      this.dataSource[data[0]]['running'] = false
+      await this.sendToPrediction(val);
     }
   }
 
+  exportAsCSV() {
+    if (this.selection.selected.length == 0) {
+      alert("No data selected");
+      return
+    }
+    let headers = this.docHeaders.concat(['pred_gradability', 'pred_area', 'pred_site']);
+    let rows = [headers]
+    this.selection.selected.forEach((idx, i, arr) => {
+      let row = [];
+      headers.forEach((val, j, arr2) => {
+        if (val in this.dataSource[idx]) {
+          row.push(this.dataSource[idx][val]);
+        } else {
+          row.push('');
+        }
+      });
+      rows.push(row);
+    });
+    let csv = "data:text/csv;charset=utf-8," + rows.map(e => e.join(",")).join('\n');
+    var encodedUri = encodeURI(csv);
+    var link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", "my_data.csv");
+    document.body.appendChild(link);
+    link.click(); 
+  }
 }

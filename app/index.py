@@ -126,6 +126,15 @@ def predict_local(model):
     )
 
 
+@app.route("/image/load_samples", methods=['GET'])
+def load_samples():
+    samples = list([os.path.abspath(os.path.join('./fundus_samples', p)) for p in os.listdir('./fundus_samples')])
+    return app.response_class(
+        response=json.dumps({'samples': samples}),
+        status=200,
+        mimetype='application/json'
+    )
+
 @app.route("/image/local", methods=['GET'])
 def return_image():
     path = urllib.parse.unquote(request.args.get('path'))
