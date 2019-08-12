@@ -24,13 +24,16 @@ export class GalleryListComponent implements OnInit, OnDestroy {
   columnsToDisplay = [];
   docHeaders = [];
   selection = new SelectionModel<any>(true, []);
+  running_progress = 0;
+  running = false;
+  stop = false;
 
   constructor(private csvService: CSVService, private http: HttpClient) {
     this.csvSubscription = this.csvService.getCSV().subscribe(data => {
       if (data) {
         this.dataSource = data['csv'];
         this.docHeaders = data['header'];
-        this.columnsToDisplay = ['select'].concat(data['header']).concat(['load', 'run']);
+        this.columnsToDisplay = ['select'].concat(data['header']).concat(['run']);
         ['pred_gradability', 'pred_area', 'pred_site'].forEach((val, idx, arr) => {
           if (this.columnsToDisplay.includes(val)) {
             this.columnsToDisplay.splice(idx, 1);
@@ -124,11 +127,26 @@ export class GalleryListComponent implements OnInit, OnDestroy {
       alert("No data selected");
       return
     }
-    // console.log(this.selection);
-    let arrs: Observable<Observable<any>[]>[] = []
+    this.running_progress = 0;
+    this.running = true;
+    this.stop = false;
+    let total = this.selection.selected.length;
+    let i = 0;
     for (let val of this.selection.selected) {
       await this.sendToPrediction(val);
+      i += 1;
+      this.running_progress = i / total * 100;
+      if(this.stop) {
+        this.running=false;
+        break;
+      }
     }
+    this.running=false;
+  }
+
+  stopClicked() {
+    this.stop = true;
+    alert("Programme will stop after the current task!");
   }
 
   exportAsCSV() {
