@@ -2,9 +2,14 @@
 // `ng build --prod` replaces `environment.ts` with `environment.prod.ts`.
 // The list of file replacements can be found in `angular.json`.
 
+import { flask_config } from './environment-common';
+
 export const environment = {
-  production: false
+  production: false,
+  mode: 'cloud' // cloud or local, determine to enable .csv based loading or not
 };
+
+export { flask_config };
 
 /*
  * For easier debugging in development mode, you can import the following file

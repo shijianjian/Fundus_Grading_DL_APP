@@ -19,7 +19,7 @@ Sample Images can be found from [EyePACS dataset](https://www.kaggle.com/c/diabe
 - For Python:
     Note: Tensorflow has to be 1.14 above. It is recommended to use 2.0 as it is the development environment.
     ```bash
-    $ pip install flask, flask_cors, tensorflow, scikit-image
+    $ pip install -r requirements.txt
     ```
 - For Node:
     ```bash

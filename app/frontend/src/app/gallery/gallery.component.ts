@@ -1,24 +1,32 @@
-import { Component, ViewChild } from '@angular/core';
+import { Component, ViewChild, OnInit } from '@angular/core';
 import { CSVService } from './csv.service';
 import { take } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
+
+import { flask_config, environment } from 'src/environments/environment'
 
 @Component({
   selector: 'app-gallery',
   templateUrl: './gallery.component.html',
   styleUrls: ['./gallery.component.css']
 })
-export class GalleryComponent {
+export class GalleryComponent implements OnInit {
 
   constructor(private csvService: CSVService, private http: HttpClient) { }
 
-  public records: any[] = [];  
+  ngOnInit() {
+    this.loadFromLocalStorage();
+  }
+
+  env = environment;
+  public records: any[] = [];
+  hightlight_index: number;
   @ViewChild('csvReader') csvReader: any;  
   
   uploadListener($event: any): void {  
   
     let text = [];  
-    let files = $event.srcElement.files;  
+    let files = $event.srcElement.files;
     console.log($event)
   
     if (this.isValidCSVFile(files[0])) {  
@@ -75,14 +83,14 @@ export class GalleryComponent {
     return headerArray;  
   }  
   
-  fileReset() {  
+  fileReset() {
     this.csvReader.nativeElement.value = "";  
     this.records = [];  
   }
 
   loadSamples() {
     let x = [];
-    this.http.get('http://127.0.0.1:5000/image/load_samples').pipe(take(1)).subscribe((data) => {
+    this.http.get(`${flask_config.backend_url}/image/load_samples`).pipe(take(1)).subscribe((data) => {
       data['samples'].forEach((val, idx, arr) => {
         x.push({'filepath': val});
       })
@@ -90,21 +98,51 @@ export class GalleryComponent {
     });
   }
 
+  loadFromLocalStorage() {
+    let x = [];
+    Object.keys(localStorage).forEach((key) => {
+      let obj = JSON.parse(localStorage.getItem(key));
+      x.push({
+        'filepath': key,
+        'base64_src': obj['base64_src'],
+        'pred_gradability': obj['pred_gradability'],
+        'pred_area': obj['pred_area'],
+        'pred_site': obj['pred_site'],
+        '__data_uploaded_tag__': obj['__data_uploaded_tag__']
+      });
+    });
+    this.csvService.sendCSV(x, ['filepath', 'pred_gradability', 'pred_area', 'pred_site']);
+  }
+
   upload(event) {
+    this.hightlight_index = undefined;
     let f: File = event.srcElement.files[0];
     const formData = new FormData();
     formData.append('file', f);
-    this.http.post('http://127.0.0.1:5000/image/upload', formData).subscribe(data => {
-      let current_csv;
-      let current_header;
-      let res = this.csvService.getCSV();
-      if (res.length == 0) {
-        current_csv = [];
-        current_header= [];
-      } else {
-        current_csv = res['csv'];
-        current_header= res['header'];
+    let res = this.csvService.getCSV();
+    let current_csv: any[];
+    let current_header: string[];
+    if (res.length == 0) {
+      current_csv = [];
+      current_header= [];
+    } else {
+      current_csv = res['csv'];
+      current_header= res['header'];
+    }
+    let exists = -1;
+    current_csv.every((val, idx, arr) => {
+      if (val['filepath'] == f.name) {
+        exists = idx;
+        return false;
       }
+      return true;
+    });
+    if (exists != -1) {
+      alert(`Duplicated filepath on index ${exists}`);
+      this.hightlight_index = exists;
+      return
+    }
+    this.http.post(`${flask_config.backend_url}/image/upload`, formData).subscribe(data => {
       if (!current_header.includes('filepath')) {
         current_header = ['filepath'].concat(current_header);
       }
@@ -112,7 +150,7 @@ export class GalleryComponent {
         current_header = ['__data_uploaded_tag__'].concat(current_header);
       }
       current_csv = [{'filepath': data['path'], '__data_uploaded_tag__': true}].concat(current_csv);
-      localStorage.setItem(data['path'], data['image']);
+      localStorage.setItem(data['path'], JSON.stringify({'base64_src': data['image'], '__data_uploaded_tag__': true}));
       this.csvService.sendCSV(current_csv, current_header);
     });
   }

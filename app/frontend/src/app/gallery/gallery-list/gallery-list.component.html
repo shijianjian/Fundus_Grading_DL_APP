@@ -6,10 +6,9 @@
   <app-progress-bar style="flex-grow:1;margin-top: 1em;" [value]="running_progress"></app-progress-bar>
   <button mat-stroked-button color="warn" [disabled]='stop' (click)='$event.stopPropagation();stopClicked()'>Stop</button>
 </div>
-<table *ngIf='dataSource.length != 0' mat-table
+<table *ngIf='dataSource.length != 0' mat-table #table
        [dataSource]="dataSource" multiTemplateDataRows
        class="mat-elevation-z8">
-    <!-- Checkbox Column -->
   <ng-container matColumnDef="{{column}}" *ngFor="let column of columnsToDisplay">
     <ng-container *ngIf="column == 'select'">
         <th mat-header-cell *matHeaderCellDef>
@@ -29,11 +28,6 @@
             </mat-checkbox>
         </td>
     </ng-container>
-    <!-- <ng-container *ngIf="column == 'load'">
-        <td mat-cell *matCellDef="let element; let i = dataIndex;">
-            <mat-icon class="example-icon" aria-hidden="false" style="cursor: pointer;" (click)="imageLaunchListener(i);" aria-label="Example heart icon">launch</mat-icon>
-        </td>
-    </ng-container> -->
     <ng-container *ngIf="column == 'run'">
         <td mat-cell *matCellDef="let element; let i = dataIndex;">
             <ng-container *ngIf="element['running'] != true">
@@ -42,6 +36,13 @@
             <ng-container *ngIf="element['running'] == true">
               <mat-spinner [diameter]="15"></mat-spinner>
             </ng-container>
+        </td>
+    </ng-container>
+    <ng-container *ngIf="column == '_'">
+        <td mat-cell *matCellDef="let element; let i = dataIndex;">
+          <mat-icon *ngIf="element['favorite'] != true" class="example-icon unselectable" aria-hidden="false" style="cursor: pointer;" (click)="$event.stopPropagation(); addToFavorite(i);" aria-label="Example heart icon">favorite_border</mat-icon>
+          <mat-icon *ngIf="element['favorite'] == true" class="example-icon unselectable" aria-hidden="false" style="cursor: pointer;" (click)="$event.stopPropagation(); addToFavorite(i);" aria-label="Example heart icon">favorite</mat-icon>
+          <mat-icon class="example-icon unselectable" aria-hidden="false" style="cursor: pointer;" (click)="$event.stopPropagation(); removeItem(i);" aria-label="Example heart icon">delete</mat-icon>
         </td>
     </ng-container>
     <th mat-header-cell *matHeaderCellDef>

@@ -1,10 +1,13 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, Input, ViewChild } from '@angular/core';
 import { SelectionModel } from '@angular/cdk/collections';
 import {animate, state, style, transition, trigger} from '@angular/animations';
 import { CSVService } from '../csv.service';
 import { Subscription, forkJoin, of, Observable } from 'rxjs';
 import { take, switchMap } from 'rxjs/operators';
 import { HttpClient, HttpParams } from '@angular/common/http';
+import { MatTable } from '@angular/material';
+
+import { flask_config } from 'src/environments/environment';
 
 @Component({
   selector: 'app-gallery-list',
@@ -27,6 +30,18 @@ export class GalleryListComponent implements OnInit, OnDestroy {
   running_progress = 0;
   running = false;
   stop = false;
+
+  private _highlightIndex;
+  get highlightIndex(): number[] {
+    return this._highlightIndex;
+  }
+  
+  @Input('highlightIndex')
+  set highlightIndex(val: number[]) {
+    this._highlightIndex = val;
+  }
+
+  @ViewChild('table') table: MatTable<any>;
 
   constructor(private csvService: CSVService, private http: HttpClient) {
     this.csvSubscription = this.csvService.getSubject().subscribe(data => {
@@ -51,7 +66,8 @@ export class GalleryListComponent implements OnInit, OnDestroy {
             this.columnsToDisplay.splice(this.columnsToDisplay.indexOf(val), 1);
           }
           this.columnsToDisplay.push(val);
-        })
+        });
+        this.columnsToDisplay.push('_'); // Default Operation Columns, including like, delete, etc.
         this.selection.clear();
         console.debug(data);
         console.debug(this.columnsToDisplay)
@@ -92,14 +108,14 @@ export class GalleryListComponent implements OnInit, OnDestroy {
   getPrediction(idx: number): Observable<any[]> {
     if (this.dataSource[idx]['__data_uploaded_tag__'] == true) {
       const formData = new FormData();
-      formData.append('image', localStorage.getItem(this.dataSource[idx]['filepath']));
-      return this.http.post('http://127.0.0.1:5000/gradability/predict/upload', formData).pipe(switchMap((x: any) => {
+      formData.append('image', JSON.parse(localStorage.getItem(this.dataSource[idx]['filepath']))['base64_src']);
+      return this.http.post(`${flask_config.backend_url}/gradability/predict/upload`, formData).pipe(switchMap((x: any) => {
         if (x['results'] == 'Gradable') {
           return forkJoin([
             of(idx),
             of(x),
-            this.http.post('http://127.0.0.1:5000/area_tagging/predict/upload', formData),
-            this.http.post('http://127.0.0.1:5000/site_tagging/predict/upload', formData)
+            this.http.post(`${flask_config.backend_url}/area_tagging/predict/upload`, formData),
+            this.http.post(`${flask_config.backend_url}/site_tagging/predict/upload`, formData)
           ]);
         } else {
           return forkJoin([
@@ -110,13 +126,13 @@ export class GalleryListComponent implements OnInit, OnDestroy {
       }));
     } else {
       const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']))
-      return this.http.get('http://127.0.0.1:5000/gradability/predict/local', {params}).pipe(switchMap((x: any) => {
+      return this.http.get(`${flask_config.backend_url}/gradability/predict/local`, {params}).pipe(switchMap((x: any) => {
         if (x['results'] == 'Gradable') {
           return forkJoin([
             of(idx),
             of(x),
-            this.http.get('http://127.0.0.1:5000/area_tagging/predict/local', {params}),
-            this.http.get('http://127.0.0.1:5000/site_tagging/predict/local', {params})
+            this.http.get(`${flask_config.backend_url}/area_tagging/predict/local`, {params}),
+            this.http.get(`${flask_config.backend_url}/site_tagging/predict/local`, {params})
           ]);
         } else {
           return forkJoin([
@@ -128,20 +144,37 @@ export class GalleryListComponent implements OnInit, OnDestroy {
     }
   }
 
+  addToFavorite(idx: number) {
+    if (this.dataSource[idx]['favorite'] == true) {
+      this.dataSource[idx]['favorite'] = false;
+    } else {
+      this.dataSource[idx]['favorite'] = true;
+    }
+  }
+
+  removeItem(idx: number) {
+    if (confirm(`You are going to remove file item ${this.dataSource[idx]['filename']}`)) {
+      localStorage.removeItem(this.dataSource[idx]['filepath']);
+      this.dataSource.splice(idx, 1);
+      this.table.renderRows();
+    }
+  }
+
   imageLaunchListener(idx: number) {
     if (this.dataSource[idx]['base64_src'] != undefined) {
       return
     }
     this.dataSource[idx]['base64_src_loading'] = true;
-    if (localStorage.getItem(this.dataSource[idx]['filepath']) != undefined) {
-      this.dataSource[idx]['base64_src'] = localStorage.getItem(this.dataSource[idx]['filepath']);
+    if ((localStorage.getItem(this.dataSource[idx]['filepath']) != undefined)
+      && (JSON.parse(localStorage.getItem(this.dataSource[idx]['filepath']))['base64_src'] != undefined)) {
+      this.dataSource[idx]['base64_src'] = JSON.parse(localStorage.getItem(this.dataSource[idx]['filepath']))['base64_src'];
       this.dataSource[idx]['base64_src_loading'] = false;
     } else {
       const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']));
-      this.http.get('http://127.0.0.1:5000/image/local', {params}).pipe(take(1)).subscribe(image => {
+      this.http.get(`${flask_config.backend_url}/image/local`, {params}).pipe(take(1)).subscribe(image => {
         this.dataSource[idx]['base64_src'] = image['image'];
         this.dataSource[idx]['base64_src_loading'] = false;
-        localStorage.setItem('filepath', image['image']);
+        this.updateLocalStorage(this.dataSource[idx]['filepath'], {'base64_src': image['image']});
       });
     }
   }
@@ -156,11 +189,26 @@ export class GalleryListComponent implements OnInit, OnDestroy {
           this.dataSource[data[0]]['pred_site'] = data[3]['results'];
         }
         this.dataSource[data[0]]['running'] = false
+        this.updateLocalStorage(this.dataSource[idx]['filepath'], {
+          'pred_gradability': data[1]['results'],
+          'pred_area': data[2]['results'],
+          'pred_site': data[3]['results'],
+        });
       },
       error => {
         console.log(error);
       }
     );
+  }
+
+  updateLocalStorage(key: string, val: {}) {
+    if (localStorage.getItem(key) != undefined) {
+      let current_val: string = localStorage.getItem(key);
+      current_val = Object.assign(JSON.parse(current_val), val);
+      localStorage.setItem(key, JSON.stringify(current_val));
+    } else {
+      localStorage.setItem(key, JSON.stringify(val));
+    }
   }
 
   async predictAll() {
