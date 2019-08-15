@@ -90,4 +90,30 @@ export class GalleryComponent {
     });
   }
 
+  upload(event) {
+    let f: File = event.srcElement.files[0];
+    const formData = new FormData();
+    formData.append('file', f);
+    this.http.post('http://127.0.0.1:5000/image/upload', formData).subscribe(data => {
+      let current_csv;
+      let current_header;
+      let res = this.csvService.getCSV();
+      if (res.length == 0) {
+        current_csv = [];
+        current_header= [];
+      } else {
+        current_csv = res['csv'];
+        current_header= res['header'];
+      }
+      if (!current_header.includes('filepath')) {
+        current_header = ['filepath'].concat(current_header);
+      }
+      if (!current_header.includes('__data_uploaded_tag__')) {
+        current_header = ['__data_uploaded_tag__'].concat(current_header);
+      }
+      current_csv = [{'filepath': data['path'], '__data_uploaded_tag__': true}].concat(current_csv);
+      localStorage.setItem(data['path'], data['image']);
+      this.csvService.sendCSV(current_csv, current_header);
+    });
+  }
 }

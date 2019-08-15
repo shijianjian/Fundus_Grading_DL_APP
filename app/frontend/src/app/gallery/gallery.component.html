@@ -1,4 +1,6 @@
 <button type="button" mat-raised-button color="warn" (click)="csvReader.click()">Choose File</button>
 <input type="file" hidden #csvReader name="Upload CSV" id="txtFileUpload" (change)="uploadListener($event)" accept=".csv">
+<button mat-button color="warn" (click)="uploadImage.click()">Select Image</button>
+<input type="file" hidden #uploadImage name="Upload Image" id="imageFileUpload" (change)="upload($event)">
 <button mat-button color="warn" (click)="loadSamples()">Load Samples</button>
 <app-gallery-list></app-gallery-list>

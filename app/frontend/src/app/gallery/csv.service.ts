@@ -1,21 +1,25 @@
 import { Injectable } from '@angular/core';
-import { Observable, Subject } from 'rxjs';
+import { Observable, BehaviorSubject, Subject } from 'rxjs';
 
 @Injectable()
 export class CSVService {
-    private subject = new Subject<any>();
-    private taskList = new Subject<any>();
+    private subject = new BehaviorSubject<any>([]);
+    private taskList = new BehaviorSubject<any>([]);
 
     sendCSV(csv: any, header: any[]) {
         this.subject.next({ csv: csv, header: header });
     }
 
     clearCSV() {
-        this.subject.next();
+        this.subject.next([]);
     }
 
-    getCSV(): Observable<any> {
-        return this.subject.asObservable();
+    getSubject(){
+        return this.subject;
+    }
+
+    getCSV(): any {
+        return this.subject.getValue();
     }
 
     sendTask(taskList: any[]) {
@@ -23,10 +27,10 @@ export class CSVService {
     }
 
     clearTask() {
-        this.taskList.next();
+        this.taskList.next([]);
     }
 
-    getTask(): Observable<any> {
-        return this.taskList.asObservable();
+    getTask(): any {
+        return this.taskList.getValue();
     }
 }

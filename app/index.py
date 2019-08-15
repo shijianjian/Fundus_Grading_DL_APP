@@ -126,6 +126,26 @@ def predict_local(model):
     )
 
 
+@app.route("/<model>/predict/upload", methods=['POST'])
+def predict_upload(model):
+    image_base64 = base64.b64decode(request.form['image'])
+    image = Image.open(io.BytesIO(image_base64))
+    image = resize(np.array(image), (224, 224), mode='constant') * 255
+    start = time.process_time()
+    out = inference(loaded_models[model], [np.array([image]).astype(np.float32)])
+    res = models[model]['class_indicies'][np.argmax(out[0])]
+    return app.response_class(
+        response=json.dumps({
+            'preds': out,
+            'class_indicies': models[model]['class_indicies'],
+            'time_elapsed': time.process_time() - start,
+            'results': res
+        }),
+        status=200,
+        mimetype='application/json'
+    )
+
+
 @app.route("/image/load_samples", methods=['GET'])
 def load_samples():
     samples = list([os.path.abspath(os.path.join('./fundus_samples', p)) for p in os.listdir('./fundus_samples')])
@@ -134,6 +154,30 @@ def load_samples():
         status=200,
         mimetype='application/json'
     )
+
+
+@app.route("/image/upload", methods=['POST'])
+def upload_image():
+    f = request.files['file']
+    filename = f.filename
+    # import tempfile
+    # temp = tempfile.NamedTemporaryFile(delete=False, dir='./', prefix='_temp_')
+    # temp.write(f.read())
+    # temp.close()
+    if filename.endswith('.tif') or filename.endswith('.tiff'):
+        img = Image.open(io.BytesIO(f.read()))
+        buffer = io.BytesIO()
+        img.save(buffer, "JPEG")
+        content = buffer.getvalue()
+        base64_image = base64.b64encode(content).decode('UTF-8')
+    else:
+        base64_image = base64.b64encode(f.read()).decode('UTF-8')
+    return app.response_class(
+        response=json.dumps({'path': filename, 'image': base64_image}),
+        status=200,
+        mimetype='application/json'
+    )
+
 
 @app.route("/image/local", methods=['GET'])
 def return_image():

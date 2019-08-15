@@ -57,7 +57,7 @@
            [@detailExpand]="element == expandedElement ? 'expanded' : 'collapsed'">
         <div class="example-element-diagram" *ngIf="!element.base64_src_loading">
           <div class="example-element-position" style="margin:auto;">
-            <img src="{{element.base64_src}}" style="width:400px;" alt="{{element.filepath}}">
+            <img src="{{element.base64_src ? 'data:image/png;base64,' + element.base64_src : ''}}" style="width:400px;" alt="{{element.filepath}}">
           </div>
           <mat-spinner [diameter]="30" *ngIf="element.base64_src_loading"></mat-spinner>
         </div>
@@ -69,10 +69,10 @@
   </ng-container>
 
   <tr mat-header-row *matHeaderRowDef="columnsToDisplay"></tr>
-  <tr mat-row *matRowDef="let element; columns: columnsToDisplay;"
+  <tr mat-row *matRowDef="let element; columns: columnsToDisplay; let i = dataIndex;"
       class="example-element-row"
       [class.example-expanded-row]="expandedElement === element"
-      (click)="expandedElement = expandedElement === element ? null : element">
+      (click)="expandedElement = expandedElement === element ? null : element; imageLaunchListener(i);">
   </tr>
   <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
 </table>

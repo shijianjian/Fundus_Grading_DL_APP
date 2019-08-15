@@ -29,14 +29,26 @@ export class GalleryListComponent implements OnInit, OnDestroy {
   stop = false;
 
   constructor(private csvService: CSVService, private http: HttpClient) {
-    this.csvSubscription = this.csvService.getCSV().subscribe(data => {
+    this.csvSubscription = this.csvService.getSubject().subscribe(data => {
+      if (data.length == 0) {
+        this.dataSource = [];
+        this.docHeaders = [];
+        this.columnsToDisplay = []
+        return
+      }
       if (data) {
         this.dataSource = data['csv'];
         this.docHeaders = data['header'];
         this.columnsToDisplay = ['select'].concat(data['header']).concat(['run']);
+        // Excluding headers
+        ['__data_uploaded_tag__'].forEach((val, idx, arr) => {
+          if (this.columnsToDisplay.includes(val)) {
+            this.columnsToDisplay.splice(this.columnsToDisplay.indexOf(val), 1);
+          }
+        });
         ['pred_gradability', 'pred_area', 'pred_site'].forEach((val, idx, arr) => {
           if (this.columnsToDisplay.includes(val)) {
-            this.columnsToDisplay.splice(idx, 1);
+            this.columnsToDisplay.splice(this.columnsToDisplay.indexOf(val), 1);
           }
           this.columnsToDisplay.push(val);
         })
@@ -78,31 +90,60 @@ export class GalleryListComponent implements OnInit, OnDestroy {
   }
 
   getPrediction(idx: number): Observable<any[]> {
-    const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']))
-    return this.http.get('http://127.0.0.1:5000/gradability/predict/local', {params}).pipe(switchMap((x: any) => {
-      if (x['results'] == 'Gradable') {
-        return forkJoin([
-          of(idx),
-          of(x),
-          this.http.get('http://127.0.0.1:5000/area_tagging/predict/local', {params}),
-          this.http.get('http://127.0.0.1:5000/site_tagging/predict/local', {params})
-        ]);
-      } else {
-        return forkJoin([
-          of(idx),
-          of(x),
-        ]);
-      }
-    }));
+    if (this.dataSource[idx]['__data_uploaded_tag__'] == true) {
+      const formData = new FormData();
+      formData.append('image', localStorage.getItem(this.dataSource[idx]['filepath']));
+      return this.http.post('http://127.0.0.1:5000/gradability/predict/upload', formData).pipe(switchMap((x: any) => {
+        if (x['results'] == 'Gradable') {
+          return forkJoin([
+            of(idx),
+            of(x),
+            this.http.post('http://127.0.0.1:5000/area_tagging/predict/upload', formData),
+            this.http.post('http://127.0.0.1:5000/site_tagging/predict/upload', formData)
+          ]);
+        } else {
+          return forkJoin([
+            of(idx),
+            of(x),
+          ]);
+        }
+      }));
+    } else {
+      const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']))
+      return this.http.get('http://127.0.0.1:5000/gradability/predict/local', {params}).pipe(switchMap((x: any) => {
+        if (x['results'] == 'Gradable') {
+          return forkJoin([
+            of(idx),
+            of(x),
+            this.http.get('http://127.0.0.1:5000/area_tagging/predict/local', {params}),
+            this.http.get('http://127.0.0.1:5000/site_tagging/predict/local', {params})
+          ]);
+        } else {
+          return forkJoin([
+            of(idx),
+            of(x),
+          ]);
+        }
+      }));
+    }
   }
 
   imageLaunchListener(idx: number) {
+    if (this.dataSource[idx]['base64_src'] != undefined) {
+      return
+    }
     this.dataSource[idx]['base64_src_loading'] = true;
-    const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']));
-    return this.http.get('http://127.0.0.1:5000/image/local', {params}).pipe(take(1)).subscribe(image => {
-      this.dataSource[idx]['base64_src'] = 'data:image/png;base64,' + image['image'];
+    if (localStorage.getItem(this.dataSource[idx]['filepath']) != undefined) {
+      this.dataSource[idx]['base64_src'] = localStorage.getItem(this.dataSource[idx]['filepath']);
       this.dataSource[idx]['base64_src_loading'] = false;
-    });
+    } else {
+      const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']));
+      this.http.get('http://127.0.0.1:5000/image/local', {params}).pipe(take(1)).subscribe(image => {
+        this.dataSource[idx]['base64_src'] = image['image'];
+        this.dataSource[idx]['base64_src_loading'] = false;
+        localStorage.setItem('filepath', image['image']);
+      });
+    }
   }
 
   async sendToPrediction(idx) {
