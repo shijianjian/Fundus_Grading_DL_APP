@@ -184,16 +184,16 @@ export class GalleryListComponent implements OnInit, OnDestroy {
     return await this.getPrediction(idx).pipe(take(1)).toPromise().then(
       (data: any[]) => {
         this.dataSource[data[0]]['pred_gradability'] = data[1]['results'];
+        this.updateLocalStorage(this.dataSource[idx]['filepath'], { 'pred_gradability': data[1]['results'] });
         if (data.length != 2) {
           this.dataSource[data[0]]['pred_area'] = data[2]['results'];
           this.dataSource[data[0]]['pred_site'] = data[3]['results'];
+          this.updateLocalStorage(this.dataSource[idx]['filepath'], {
+            'pred_area': data[2]['results'],
+            'pred_site': data[3]['results'],
+          });
         }
         this.dataSource[data[0]]['running'] = false
-        this.updateLocalStorage(this.dataSource[idx]['filepath'], {
-          'pred_gradability': data[1]['results'],
-          'pred_area': data[2]['results'],
-          'pred_site': data[3]['results'],
-        });
       },
       error => {
         console.log(error);

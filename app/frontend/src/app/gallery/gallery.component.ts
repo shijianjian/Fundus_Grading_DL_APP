@@ -20,7 +20,7 @@ export class GalleryComponent implements OnInit {
 
   env = environment;
   public records: any[] = [];
-  hightlight_index: number;
+  highlight_index: number;
   @ViewChild('csvReader') csvReader: any;  
   
   uploadListener($event: any): void {  
@@ -115,7 +115,7 @@ export class GalleryComponent implements OnInit {
   }
 
   upload(event) {
-    this.hightlight_index = undefined;
+    this.highlight_index = undefined;
     let f: File = event.srcElement.files[0];
     const formData = new FormData();
     formData.append('file', f);
@@ -139,7 +139,7 @@ export class GalleryComponent implements OnInit {
     });
     if (exists != -1) {
       alert(`Duplicated filepath on index ${exists}`);
-      this.hightlight_index = exists;
+      this.highlight_index = exists;
       return
     }
     this.http.post(`${flask_config.backend_url}/image/upload`, formData).subscribe(data => {
