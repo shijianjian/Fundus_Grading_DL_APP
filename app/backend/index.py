@@ -14,24 +14,25 @@ from PIL import Image
 app = Flask(__name__)
 CORS(app)
 
+base_dir = os.path.dirname(__file__)
+
 
 @app.route('/')
 def hello():
-    name = request.args.get("name", "World")
-    return f'Hello, {escape(name)}!'
+    return 'Hello, World!'
 
 
 models = {
     'area_tagging': {
-        'path': './models/area_tflite_model-epoch_21.tflite',
+        'path': os.path.join(base_dir, 'models', 'area_tflite_model-epoch_21.tflite'),
         'class_indicies': {0: 'Disc', 1: 'Macular'}
     },
     'site_tagging': {
-        'path': './models/site_tflite_model-epoch_39.tflite',
+        'path': os.path.join(base_dir, 'models', 'site_tflite_model-epoch_39.tflite'),
         'class_indicies': {0: 'L', 1: 'R'}
     },
     'gradability': {
-        'path': './models/gradability_converted_tflite_model.tflite',
+        'path': os.path.join(base_dir, 'models', 'gradability_converted_tflite_model.tflite'),
         'class_indicies': {0: 'Ungradable', 1: 'Gradable'}
     }
 }
