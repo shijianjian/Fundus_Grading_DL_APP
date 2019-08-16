@@ -1,4 +1,5 @@
 from flask import Flask, escape, request, json, url_for, send_from_directory
+from waitress import serve
 from flask_cors import CORS
 import tensorflow as tf
 from skimage.transform import resize
@@ -48,7 +49,7 @@ for model in models.keys():
 
 @app.route('/')
 def serve_frontend():
-    return send_from_directory('dist/frontend', 'index.html')
+    return send_from_directory('dist', '/frontend/index.html')
 
 
 def inference(interpreter, x):
@@ -199,4 +200,5 @@ def return_image():
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0')
+    # app.run(host='0.0.0.0')
+    serve(app, host="0.0.0.0", port=5000)
