@@ -1,6 +1,6 @@
 from flask import Flask, escape, request, json, url_for, send_from_directory
-from waitress import serve
-from flask_cors import CORS
+from flask_talisman import Talisman
+from flask_seasurf import SeaSurf
 import tensorflow as tf
 from skimage.transform import resize
 import matplotlib.pyplot as plt
@@ -12,8 +12,22 @@ import base64
 import io
 from PIL import Image
 
-app = Flask(__name__, static_folder='dist')
-CORS(app)
+app = Flask(__name__)
+SeaSurf(app)
+
+SELF = "'self'"
+talisman = Talisman(
+    app,
+    content_security_policy={
+        'default-src': SELF,
+        'script-src': [
+            SELF
+        ],
+        'style-src': [
+            SELF
+        ],
+    }
+)
 
 base_dir = os.path.dirname(__file__)
 
@@ -49,7 +63,7 @@ for model in models.keys():
 
 @app.route('/')
 def serve_frontend():
-    return send_from_directory('dist', '/frontend/index.html')
+    return "Hello, World!"
 
 
 def inference(interpreter, x):
@@ -134,7 +148,7 @@ def predict_local(model):
 def predict_upload(model):
     image_base64 = base64.b64decode(request.form['image'])
     image = Image.open(io.BytesIO(image_base64))
-    image = resize(np.array(image), (224, 224), mode='constant') * 255
+    image = resize(np.array(image.copy()), (224, 224), mode='constant') * 255
     start = time.process_time()
     out = inference(loaded_models[model], [np.array([image]).astype(np.float32)])
     res = models[model]['class_indicies'][np.argmax(out[0])]
@@ -200,5 +214,4 @@ def return_image():
 
 
 if __name__ == '__main__':
-    # app.run(host='0.0.0.0')
-    serve(app, host="0.0.0.0", port=5000)
+    app.run(host='0.0.0.0', debug=True)

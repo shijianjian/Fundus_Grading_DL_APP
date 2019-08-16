@@ -5,6 +5,6 @@ gcloud compute instances create fundus-dl-app\
      --machine-type=f1-micro\
      --scopes userinfo-email,cloud-platform\
      --metadata-from-file startup-script=gce/backend-startup-script.sh\
-     --hostname=fundus-dl-app\
+     --hostname=fundus-dl-app.demo.com\
      --zone us-west1-a\
-     --tags http-server
+     --tags http-server,https-server
