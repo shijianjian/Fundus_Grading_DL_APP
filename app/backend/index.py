@@ -11,7 +11,7 @@ import base64
 import io
 from PIL import Image
 
-app = Flask(__name__, static_folder='dist/frontend')
+app = Flask(__name__, static_folder='dist')
 CORS(app)
 
 base_dir = os.path.dirname(__file__)
