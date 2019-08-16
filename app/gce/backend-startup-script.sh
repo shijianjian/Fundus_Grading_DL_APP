@@ -1,5 +1,7 @@
 # Code built on top of https://github.com/GoogleCloudPlatform/getting-started-python/blob/master/7-gce/gce/startup-script.sh
 
+# NOTE: Angular Application has to be built to prod first, and copy to backend folder.
+
 set -v
 
 REPO_NAME=github_shijianjian_fundus_grading_dl_app

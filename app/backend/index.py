@@ -1,4 +1,4 @@
-from flask import Flask, escape, request, json, url_for
+from flask import Flask, escape, request, json, url_for, send_from_directory
 from flask_cors import CORS
 import tensorflow as tf
 from skimage.transform import resize
@@ -11,7 +11,7 @@ import base64
 import io
 from PIL import Image
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='dist/frontend')
 CORS(app)
 
 base_dir = os.path.dirname(__file__)
@@ -47,8 +47,8 @@ for model in models.keys():
 
 
 @app.route('/')
-def hello():
-    return 'Hello, World!'
+def serve_frontend():
+    return send_from_directory('dist/frontend', 'index.html')
 
 
 def inference(interpreter, x):
