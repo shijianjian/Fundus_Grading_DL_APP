@@ -17,10 +17,7 @@ CORS(app)
 base_dir = os.path.dirname(__file__)
 
 
-@app.route('/')
-def hello():
-    return 'Hello, World!'
-
+fundus_sample_path = os.path.join(base_dir, 'fundus_samples')
 
 models = {
     'area_tagging': {
@@ -47,6 +44,11 @@ loaded_models = {}
 
 for model in models.keys():
     loaded_models.update({model: load_model(models[model])})
+
+
+@app.route('/')
+def hello():
+    return 'Hello, World!'
 
 
 def inference(interpreter, x):
@@ -149,7 +151,7 @@ def predict_upload(model):
 
 @app.route("/image/load_samples", methods=['GET'])
 def load_samples():
-    samples = list([os.path.abspath(os.path.join('./fundus_samples', p)) for p in os.listdir('./fundus_samples')])
+    samples = list([os.path.abspath(os.path.join(fundus_sample_path, p)) for p in os.listdir(fundus_sample_path)])
     return app.response_class(
         response=json.dumps({'samples': samples}),
         status=200,
@@ -161,10 +163,7 @@ def load_samples():
 def upload_image():
     f = request.files['file']
     filename = f.filename
-    # import tempfile
-    # temp = tempfile.NamedTemporaryFile(delete=False, dir='./', prefix='_temp_')
-    # temp.write(f.read())
-    # temp.close()
+    # Convert image to JPEG and store it on frontend, keep the backend stateless.
     if filename.endswith('.tif') or filename.endswith('.tiff'):
         img = Image.open(io.BytesIO(f.read()))
         buffer = io.BytesIO()
@@ -200,4 +199,4 @@ def return_image():
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host='0.0.0.0')

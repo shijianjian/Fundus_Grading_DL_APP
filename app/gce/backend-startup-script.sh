@@ -32,7 +32,7 @@ git clone https://source.developers.google.com/p/$PROJECTID/r/$REPO_NAME /opt/ap
 # Install app dependencies
 virtualenv -p python3 /opt/app/env
 source /opt/app/env/bin/activate
-/opt/app/env/bin/pip --no-cache-dir install -r /opt/app/app/requirements.txt
+/opt/app/env/bin/pip --no-cache-dir install -r /opt/app/app/backend/requirements.txt
 
 # Make sure the pythonapp user owns the application code
 chown -R pythonapp:pythonapp /opt/app
