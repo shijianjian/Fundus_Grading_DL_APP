@@ -44,7 +44,7 @@ chown -R pythonapp:pythonapp /opt/app
 cat >/etc/supervisor/conf.d/python-app.conf << EOF
 [program:pythonapp]
 directory=/opt/app/app
-command=gunicorn --certifile cert.pem --keyfile key.pem --bind 0.0.0.0:5000 /opt/app/app/backend/wsgi:app
+command=gunicorn --bind 0.0.0.0:5000 /opt/app/app/backend/wsgi:app
 autostart=true
 autorestart=true
 user=pythonapp

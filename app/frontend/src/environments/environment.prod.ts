@@ -6,7 +6,7 @@ export const environment = {
 
 const flask_config = {
   // GCloud IP for compute engine
-  'backend_url': 'http://35.199.172.38:5000'
+  'backend_url': 'http://35.227.184.144:5000'
 }
 
 export { flask_config };

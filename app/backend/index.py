@@ -1,6 +1,7 @@
 from flask import Flask, escape, request, json, url_for, send_from_directory
 from flask_talisman import Talisman
 from flask_seasurf import SeaSurf
+from flask_cors import CORS
 import tensorflow as tf
 from skimage.transform import resize
 import matplotlib.pyplot as plt
@@ -13,21 +14,24 @@ import io
 from PIL import Image
 
 app = Flask(__name__)
-SeaSurf(app)
+CORS(app)
+# For CSRF preventing.
+# SeaSurf(app)
 
-SELF = "'self'"
-talisman = Talisman(
-    app,
-    content_security_policy={
-        'default-src': SELF,
-        'script-src': [
-            SELF
-        ],
-        'style-src': [
-            SELF
-        ],
-    }
-)
+# For HTTPS urls.
+# SELF = "'self'"
+# talisman = Talisman(
+#     app,
+#     content_security_policy={
+#         'default-src': SELF,
+#         'script-src': [
+#             SELF
+#         ],
+#         'style-src': [
+#             SELF
+#         ],
+#     }
+# )
 
 base_dir = os.path.dirname(__file__)
 

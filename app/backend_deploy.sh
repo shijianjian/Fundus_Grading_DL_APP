@@ -1,5 +1,5 @@
 #!/bin/bash
-gcloud compute instances create fundus-dl-app\
+gcloud compute instances create fundus-dl-app-backend\
      --image-family=debian-9\
      --image-project=debian-cloud\
      --machine-type=f1-micro\

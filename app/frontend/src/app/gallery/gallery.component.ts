@@ -2,8 +2,10 @@ import { Component, ViewChild, OnInit } from '@angular/core';
 import { CSVService } from './csv.service';
 import { take } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
+import * as UTIF from 'utif';
 
 import { flask_config, environment } from 'src/environments/environment'
+
 
 @Component({
   selector: 'app-gallery',
@@ -114,9 +116,14 @@ export class GalleryComponent implements OnInit {
     this.csvService.sendCSV(x, ['filepath', 'pred_gradability', 'pred_area', 'pred_site']);
   }
 
-  upload(event) {
+  async upload(event) {
     this.highlight_index = undefined;
     let f: File = event.srcElement.files[0];
+    const resizedImage: Blob = await resizeImage({
+        file: f,
+        maxSize: 400
+    });
+    f = new File([resizedImage], f.name)
     const formData = new FormData();
     formData.append('file', f);
     let res = this.csvService.getCSV();
@@ -130,17 +137,20 @@ export class GalleryComponent implements OnInit {
       current_header= res['header'];
     }
     let exists = -1;
-    current_csv.every((val, idx, arr) => {
-      if (val['filepath'] == f.name) {
-        exists = idx;
-        return false;
+    // Duplication check
+    () => {
+      current_csv.every((val, idx, arr) => {
+        if (val['filepath'] == f.name) {
+          exists = idx;
+          return false;
+        }
+        return true;
+      });
+      if (exists != -1) {
+        alert(`Duplicated filepath on index ${exists}`);
+        this.highlight_index = exists;
+        return
       }
-      return true;
-    });
-    if (exists != -1) {
-      alert(`Duplicated filepath on index ${exists}`);
-      this.highlight_index = exists;
-      return
     }
     this.http.post(`${flask_config.backend_url}/image/upload`, formData).subscribe(data => {
       if (!current_header.includes('filepath')) {
@@ -155,3 +165,86 @@ export class GalleryComponent implements OnInit {
     });
   }
 }
+
+interface IResizeImageOptions {
+  maxSize: number;
+  file: File;
+}
+
+function resizeImage(settings: IResizeImageOptions): Promise<Blob> {
+  const file = settings.file;
+  const maxSize = settings.maxSize;
+  const reader = new FileReader();
+  const image = new Image();
+  const canvas = document.createElement('canvas');
+
+  const loadTiff = (tifffile: any) => {
+    var ifds = UTIF.decode(tifffile);
+    UTIF.decodeImage(tifffile, ifds[0]);
+    return ifds[0];
+  }
+
+  const dataURItoBlob = (dataURI: string) => {
+    const bytes = dataURI.split(',')[0].indexOf('base64') >= 0 ?
+        atob(dataURI.split(',')[1]) :
+        unescape(dataURI.split(',')[1]);
+    const mime = dataURI.split(',')[0].split(':')[1].split(';')[0];
+    const max = bytes.length;
+    const ia = new Uint8Array(max);
+    for (var i = 0; i < max; i++) ia[i] = bytes.charCodeAt(i);
+    return new Blob([ia], {type:mime});
+  };
+
+  const resize = () => {
+    let width = image.width;
+    let height = image.height;
+
+    if (width > height) {
+        if (width > maxSize) {
+            height *= maxSize / width;
+            width = maxSize;
+        }
+    } else {
+        if (height > maxSize) {
+            width *= maxSize / height;
+            height = maxSize;
+        }
+    }
+    canvas.width = width;
+    canvas.height = height;
+    canvas.getContext('2d').drawImage(image, 0, 0, width, height);
+    let dataUrl = canvas.toDataURL('image/jpeg');
+    return dataURItoBlob(dataUrl);
+  };
+  return new Promise((ok, no) => {
+    if (!file.type.match(/image.*/)) {
+      no(new Error("Not an image"));
+      return;
+    }
+    reader.onload = (readerEvent: ProgressEvent) => {
+      image.onload = () => ok(resize());
+      if (file.name.endsWith('.tif') || file.name.endsWith('.tiff')) {
+        var binary_string =  window.atob(readerEvent.target['result'].split(',')[1]);
+        var len = binary_string.length;
+        var bytes = new Uint8Array(len);
+        for (var i = 0; i < len; i++) {
+            bytes[i] = binary_string.charCodeAt(i);
+        }
+        const tif_cvt = loadTiff(bytes.buffer);
+        canvas.width  = tif_cvt.width;
+        canvas.height = tif_cvt.height;
+        let ctx = canvas.getContext('2d');
+        let rgba = UTIF.toRGBA8(tif_cvt);
+        const imageData = ctx.createImageData(canvas.width, canvas.height);
+        for (let i = 0; i < rgba.length; i++) {
+          imageData.data[i] = rgba[i];
+        }
+        ctx.putImageData(imageData, 0, 0);
+        image.src = canvas.toDataURL('image/jpeg');
+      } else {
+        image.src = readerEvent.target['result'];
+      }
+    };
+    reader.readAsDataURL(file);
+  })    
+};
