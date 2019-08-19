@@ -1,7 +1,7 @@
 import { Component, OnInit, OnDestroy, Input, ViewChild } from '@angular/core';
 import { SelectionModel } from '@angular/cdk/collections';
-import {animate, state, style, transition, trigger} from '@angular/animations';
-import { CSVService } from '../csv.service';
+import { animate, state, style, transition, trigger } from '@angular/animations';
+import { CSVService, CSVData } from '../csv.service';
 import { Subscription, forkJoin, of, Observable } from 'rxjs';
 import { take, switchMap } from 'rxjs/operators';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -44,14 +44,14 @@ export class GalleryListComponent implements OnInit, OnDestroy {
   @ViewChild('table') table: MatTable<any>;
 
   constructor(private csvService: CSVService, private http: HttpClient) {
-    this.csvSubscription = this.csvService.getSubject().subscribe(data => {
-      if (data.length == 0) {
+    this.csvSubscription = this.csvService.getSubject().subscribe((data: CSVData) => {
+      if (data.csv.length == 0) {
         this.dataSource = [];
         this.docHeaders = [];
         this.columnsToDisplay = []
         return
       }
-      if (data) {
+      if (data.csv) {
         this.dataSource = data['csv'];
         this.docHeaders = data['header'];
         this.columnsToDisplay = ['select'].concat(data['header']).concat(['run']);
@@ -110,6 +110,8 @@ export class GalleryListComponent implements OnInit, OnDestroy {
       const formData = new FormData();
       formData.append('image', JSON.parse(localStorage.getItem(this.dataSource[idx]['filepath']))['base64_src']);
       return this.http.post(`${flask_config.backend_url}/gradability/predict/upload`, formData).pipe(switchMap((x: any) => {
+        this.dataSource[idx]['pred_gradability'] = x['results'];
+        this.updateLocalStorage(this.dataSource[idx]['filepath'], { 'pred_gradability': x['results'] });
         if (x['results'] == 'Gradable') {
           return forkJoin([
             of(idx),
@@ -127,6 +129,8 @@ export class GalleryListComponent implements OnInit, OnDestroy {
     } else {
       const params = new HttpParams().set('path', encodeURIComponent(this.dataSource[idx]['filepath']))
       return this.http.get(`${flask_config.backend_url}/gradability/predict/local`, {params}).pipe(switchMap((x: any) => {
+        this.dataSource[idx]['pred_gradability'] = x['results'];
+        this.updateLocalStorage(this.dataSource[idx]['filepath'], { 'pred_gradability': x['results'] });
         if (x['results'] == 'Gradable') {
           return forkJoin([
             of(idx),
@@ -152,6 +156,24 @@ export class GalleryListComponent implements OnInit, OnDestroy {
     }
   }
 
+  addAllToFavoriteOrNot(to_fav: boolean) {
+    this.selection.selected.forEach((val, idx, arr) => {
+      this.dataSource[val]['favorite'] = to_fav;
+    })
+  }
+
+  isAllFavorited() {
+    let flag = true;
+    this.selection.selected.every((val, idx, arr) => {
+      if (!this.dataSource[val]['favorite']) {
+        flag = false;
+        return false;
+      }
+      return true;
+    });
+    return flag;
+  }
+
   removeItem(idx: number) {
     if (confirm(`You are going to remove file item ${this.dataSource[idx]['filename']}`)) {
       localStorage.removeItem(this.dataSource[idx]['filepath']);
@@ -160,13 +182,27 @@ export class GalleryListComponent implements OnInit, OnDestroy {
     }
   }
 
+  removeAll() {
+    if (confirm(`You are going to remove ${this.selection.selected.length} files!`)) {
+      this.running = true;
+      for(let i = this.selection.selected.length - 1; i >= 0; i --) {
+        let idx = this.selection.selected[i];
+        localStorage.removeItem(this.dataSource[idx]['filepath']);
+        this.dataSource.splice(idx, 1);
+        this.table.renderRows();
+      }
+      this.running = false;
+    }
+  }
+
   imageLaunchListener(idx: number) {
     if (this.dataSource[idx]['base64_src'] != undefined) {
       return
     }
     this.dataSource[idx]['base64_src_loading'] = true;
-    if ((localStorage.getItem(this.dataSource[idx]['filepath']) != undefined)
-      && (JSON.parse(localStorage.getItem(this.dataSource[idx]['filepath']))['base64_src'] != undefined)) {
+    // if ((localStorage.getItem(this.dataSource[idx]['filepath']) != undefined)
+    //   && (JSON.parse(localStorage.getItem(this.dataSource[idx]['filepath']))['base64_src'] != undefined)) {
+    if (this.dataSource[idx]['__data_uploaded_tag__']) {
       this.dataSource[idx]['base64_src'] = JSON.parse(localStorage.getItem(this.dataSource[idx]['filepath']))['base64_src'];
       this.dataSource[idx]['base64_src_loading'] = false;
     } else {
@@ -174,17 +210,19 @@ export class GalleryListComponent implements OnInit, OnDestroy {
       this.http.get(`${flask_config.backend_url}/image/local`, {params}).pipe(take(1)).subscribe(image => {
         this.dataSource[idx]['base64_src'] = image['image'];
         this.dataSource[idx]['base64_src_loading'] = false;
-        this.updateLocalStorage(this.dataSource[idx]['filepath'], {'base64_src': image['image']});
+        this.dataSource[idx]['__data_uploaded_tag__'] = false;
+        this.updateLocalStorage(this.dataSource[idx]['filepath'], {'__data_uploaded_tag__': false});
       });
     }
   }
 
   async sendToPrediction(idx) {
-    this.dataSource[idx]['running'] = true
+    this.dataSource[idx]['running'] = true;
+    this.dataSource[idx]['pred_gradability'] = '';
+    this.dataSource[idx]['pred_area'] = '';
+    this.dataSource[idx]['pred_site'] = '';
     return await this.getPrediction(idx).pipe(take(1)).toPromise().then(
       (data: any[]) => {
-        this.dataSource[data[0]]['pred_gradability'] = data[1]['results'];
-        this.updateLocalStorage(this.dataSource[idx]['filepath'], { 'pred_gradability': data[1]['results'] });
         if (data.length != 2) {
           this.dataSource[data[0]]['pred_area'] = data[2]['results'];
           this.dataSource[data[0]]['pred_site'] = data[3]['results'];
@@ -243,7 +281,12 @@ export class GalleryListComponent implements OnInit, OnDestroy {
       alert("No data selected");
       return
     }
-    let headers = this.docHeaders.concat(['pred_gradability', 'pred_area', 'pred_site']);
+    let headers = this.docHeaders;
+    ['pred_gradability', 'pred_area', 'pred_site'].forEach((val, idx, arr) => {
+      if (!this.docHeaders.includes(val)) {
+        headers.push(val);
+      }
+    });
     let rows = [headers]
     this.selection.selected.forEach((idx, i, arr) => {
       let row = [];

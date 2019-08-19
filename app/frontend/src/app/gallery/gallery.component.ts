@@ -45,7 +45,7 @@ export class GalleryComponent implements OnInit {
           alert("No column named 'filepath'. Inference will not be runnable.")
         }
         this.records = this.getDataRecordsArrayFromCSVFile(csvRecordsArray, headersRow);
-        this.csvService.sendCSV(this.records, headersRow);
+        this.csvService.sendCSV({csv: this.records, header: headersRow});
       };
   
       reader.onerror = function () {  
@@ -96,7 +96,9 @@ export class GalleryComponent implements OnInit {
       data['samples'].forEach((val, idx, arr) => {
         x.push({'filepath': val});
       })
-      this.csvService.sendCSV(x, ['filepath']);
+      let current_csv = this.csvService.getCSV();
+      let new_csv = current_csv.csv.concat(x);
+      this.csvService.sendCSV({csv: new_csv, header: current_csv.header});
     });
   }
 
@@ -113,7 +115,7 @@ export class GalleryComponent implements OnInit {
         '__data_uploaded_tag__': obj['__data_uploaded_tag__']
       });
     });
-    this.csvService.sendCSV(x, ['filepath', 'pred_gradability', 'pred_area', 'pred_site']);
+    this.csvService.sendCSV({csv: x, header: ['filepath', 'pred_gradability', 'pred_area', 'pred_site']});
   }
 
   async upload(event) {
@@ -129,7 +131,7 @@ export class GalleryComponent implements OnInit {
     let res = this.csvService.getCSV();
     let current_csv: any[];
     let current_header: string[];
-    if (res.length == 0) {
+    if (res.csv.length == 0) {
       current_csv = [];
       current_header= [];
     } else {
@@ -160,8 +162,8 @@ export class GalleryComponent implements OnInit {
         current_header = ['__data_uploaded_tag__'].concat(current_header);
       }
       current_csv = [{'filepath': data['path'], '__data_uploaded_tag__': true}].concat(current_csv);
-      localStorage.setItem(data['path'], JSON.stringify({'base64_src': data['image'], '__data_uploaded_tag__': true}));
-      this.csvService.sendCSV(current_csv, current_header);
+      localStorage.setItem(data['path'], JSON.stringify({'base64_src': data['image'], 'base64_img_size': (data['image'].length / 4) * 3 / 1024, '__data_uploaded_tag__': true}));
+      this.csvService.sendCSV({csv: current_csv, header: current_header});
     });
   }
 }
@@ -236,9 +238,7 @@ function resizeImage(settings: IResizeImageOptions): Promise<Blob> {
         let ctx = canvas.getContext('2d');
         let rgba = UTIF.toRGBA8(tif_cvt);
         const imageData = ctx.createImageData(canvas.width, canvas.height);
-        for (let i = 0; i < rgba.length; i++) {
-          imageData.data[i] = rgba[i];
-        }
+        imageData.data.set(rgba);
         ctx.putImageData(imageData, 0, 0);
         image.src = canvas.toDataURL('image/jpeg');
       } else {
@@ -247,4 +247,4 @@ function resizeImage(settings: IResizeImageOptions): Promise<Blob> {
     };
     reader.readAsDataURL(file);
   })    
-};
+}
