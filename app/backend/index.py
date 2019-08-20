@@ -13,6 +13,9 @@ import base64
 import io
 from PIL import Image
 
+SERVING_WEB = True
+
+
 app = Flask(__name__)
 CORS(app)
 # For CSRF preventing.
@@ -65,9 +68,18 @@ for model in models.keys():
     loaded_models.update({model: load_model(models[model])})
 
 
-@app.route('/')
-def serve_frontend():
-    return "Hello, World!"
+if SERVING_WEB:
+    @app.route('/<path:path>', methods=['GET'])
+    def static_proxy(path):
+        return send_from_directory('./', path)
+
+    @app.route('/')
+    def root():
+        return send_from_directory('./', 'index.html')
+else:
+    @app.route('/')
+    def serve_frontend():
+        return "Hello, World!"
 
 
 def inference(interpreter, x):
