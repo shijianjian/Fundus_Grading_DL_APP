@@ -28,6 +28,34 @@ Sample Images can be found from [EyePACS dataset](https://www.kaggle.com/c/diabe
     ```
 Note: <b>If using self-provided fundus photos, you must provide a .csv file with a column named 'filepath'.</b>
 
+## Remark.
+The current @types dependency for UTIF package has a version conflict. You may need to update the file under ```app/frontend/node_modules/@types/utif/index.d.ts``` line 40 from
+```javascript
+export function decodeImages(buffer: Buffer | ArrayBuffer, ifds: IFD[]): void;
+```
+to
+```javascript
+export function decodeImage(buffer: Buffer | ArrayBuffer, ifds: IFD): void;
+```
+
+## Deployment
+After you got all the required dependencies, you may run the command below to package up everything for deployment.
+```bash
+$ bash package_up.sh
+```
+Then build docker image with
+```bash
+$ sudo docker build -t fundus-dl-app:0.1 .
+```
+This will take some time due to the ```apt-get update``` process. After that, you may start up the docker container:
+```bash
+$ sudo docker run -d -p 5000:5000 fundus-dl-app:0.1
+```
+For debugging purpose, we need to overwrite the ENTRYPOINT for the image, hence, you may run:
+```bash
+$ sudo docker run -d --entrypoint=/bin/bash fundus-dl-app:0.1
+```
+
 ## Screenshot
 
 ![screenshot](./imgs/sc.png)
