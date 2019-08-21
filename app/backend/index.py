@@ -1,6 +1,6 @@
 from flask import Flask, escape, request, json, url_for, send_from_directory
-from flask_talisman import Talisman
-from flask_seasurf import SeaSurf
+# from flask_talisman import Talisman
+# from flask_seasurf import SeaSurf
 from flask_cors import CORS
 import tensorflow as tf
 from skimage.transform import resize
