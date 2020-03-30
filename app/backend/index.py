@@ -130,7 +130,7 @@ def img_preprocessing(img_path):
 def predict(model):
     data = request.data
     print(data)
-    inference(loaded_models[model], data)
+    x = inference(loaded_models[model], data)
     for i in range(len(x)):
         x[i]['shape'] = x[i]['shape'].tolist()
         x[i]['dtype'] = x[i]['dtype'].__name__

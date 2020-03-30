@@ -11,9 +11,7 @@ RUN npm install -g npm
 WORKDIR /app
 COPY . /app
 
-RUN cd frontend && npm i && cd ..
 RUN pip3 install -r ./backend/requirements.txt && bash package_up.sh
-
-COPY ./packaging /app
+WORKDIR /app/packaging
 
 ENTRYPOINT ["gunicorn", "--bind", "0.0.0.0:5000", "wsgi:app"]

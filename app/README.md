@@ -39,10 +39,6 @@ export function decodeImage(buffer: Buffer | ArrayBuffer, ifds: IFD): void;
 ```
 
 ## Deployment
-After you got all the required dependencies, you may run the command below to package up everything for deployment.
-```bash
-$ bash package_up.sh
-```
 Then build docker image with
 ```bash
 $ sudo docker build -t fundus-dl-app:0.1 .
@@ -51,6 +47,7 @@ This will take some time due to the ```apt-get update``` process. After that, yo
 ```bash
 $ sudo docker run -d -p 5000:5000 fundus-dl-app:0.1
 ```
+*NOTE*: Has to be 5000 port for external, or the internal services cannot be accessed from the frontend.
 For debugging purpose, we need to overwrite the ENTRYPOINT for the image, hence, you may run:
 ```bash
 $ sudo docker run -d --entrypoint=/bin/bash fundus-dl-app:0.1
