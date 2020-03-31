@@ -28,17 +28,13 @@ Sample Images can be found from [EyePACS dataset](https://www.kaggle.com/c/diabe
     ```
 Note: <b>If using self-provided fundus photos, you must provide a .csv file with a column named 'filepath'.</b>
 
-## Remark.
-The current @types dependency for UTIF package has a version conflict. You may need to update the file under ```app/frontend/node_modules/@types/utif/index.d.ts``` line 40 from
-```javascript
-export function decodeImages(buffer: Buffer | ArrayBuffer, ifds: IFD[]): void;
-```
-to
-```javascript
-export function decodeImage(buffer: Buffer | ArrayBuffer, ifds: IFD): void;
-```
+## Remark
+Can't run on some CPUs since it is not supported for Tensorflow AVX instructions.
+
 
 ## Deployment
+To access from the outside, please update the ip address accordingly in ```/frontend/src/environments/environment.ts```.
+
 Then build docker image with
 ```bash
 $ sudo docker build -t fundus-dl-app:0.1 .
