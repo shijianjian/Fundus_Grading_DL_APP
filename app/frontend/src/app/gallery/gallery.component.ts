@@ -119,8 +119,14 @@ export class GalleryComponent implements OnInit {
   }
 
   async upload(event) {
+    let fs: FileList = event.srcElement.files;
+    for (let i = 0; i < fs.length; i ++) {
+      await this._upload_one(fs.item(i))
+    }
+  }
+
+  async _upload_one(f) {
     this.highlight_index = undefined;
-    let f: File = event.srcElement.files[0];
     const resizedImage: Blob = await resizeImage({
         file: f,
         maxSize: 400

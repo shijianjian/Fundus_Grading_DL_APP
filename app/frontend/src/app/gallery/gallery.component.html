@@ -3,6 +3,6 @@
     <input type="file" hidden #csvReader name="Upload CSV" id="txtFileUpload" (change)="uploadListener($event)" accept=".csv">
 </ng-container>
 <button mat-button color="warn" (click)="uploadImage.click()">Select Image</button>
-<input type="file" hidden #uploadImage name="Upload Image" id="imageFileUpload" (change)="upload($event)">
+<input type="file" hidden multiple #uploadImage name="Upload Image" id="imageFileUpload" (change)="upload($event)">
 <button *ngIf="!env.production" mat-button color="warn" (click)="loadSamples()">Load Samples</button>
 <app-gallery-list [highlightIndex]="highlight_index"></app-gallery-list>
