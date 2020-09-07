@@ -2,7 +2,24 @@
     <button type="button" mat-raised-button color="warn" (click)="csvReader.click()">Choose File</button>
     <input type="file" hidden #csvReader name="Upload CSV" id="txtFileUpload" (change)="uploadListener($event)" accept=".csv">
 </ng-container>
-<button mat-button color="warn" (click)="uploadImage.click()">Select Image</button>
-<input type="file" hidden multiple #uploadImage name="Upload Image" id="imageFileUpload" (change)="upload($event)">
+
 <button *ngIf="!env.production" mat-button color="warn" (click)="loadSamples()">Load Samples</button>
+
+<div style="display: flex; justify-content: space-between;">
+    <file-upload style="width: 40em; height: 10em;"
+        [(ngModel)]="uploadedFiles" (change)="auto_upload($event)" [control]="filesControl" multiple="true" animation="true"></file-upload>
+    <div class="file-list" style="height: 10em; overflow-y:scroll;" *ngIf="filesControl.value.length > 0">
+        <div style="float: left;">Waiting List: {{uploadedFiles.length}} (click name to remove)</div>
+        <div class="file-item gallery-file-item" 
+            style="cursor: pointer;"
+            *ngFor="let file of uploadedFiles"
+            (click)="filesControl.removeFile(file)">
+            <span>{{ file.name }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- <button mat-button color="warn" (click)="uploadImage.click()">Select Image</button>
+<input type="file" hidden multiple #uploadImage name="Upload Image" id="imageFileUpload" (change)="upload($event)"> -->
+
 <app-gallery-list [highlightIndex]="highlight_index"></app-gallery-list>

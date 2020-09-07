@@ -1,0 +1,8 @@
+.gallery-file-item:hover{
+    cursor: pointer;
+    color: red;
+}
+
+.gallery-file-item:hover span:after {
+    content: ' (delete)';
+  }

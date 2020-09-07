@@ -2,6 +2,8 @@ import { Component, ViewChild, OnInit } from '@angular/core';
 import { CSVService } from './csv.service';
 import { take } from 'rxjs/operators';
 import { HttpClient } from '@angular/common/http';
+import { FormControl, FormGroup } from '@angular/forms';
+import { FileUploadControl, FileUploadValidators } from '@iplab/ngx-file-upload';
 import * as UTIF from 'utif';
 
 import { flask_config, environment } from 'src/environments/environment'
@@ -14,12 +16,16 @@ import { flask_config, environment } from 'src/environments/environment'
 })
 export class GalleryComponent implements OnInit {
 
+  public uploadedFiles: Array<File> = [];
+
   constructor(private csvService: CSVService, private http: HttpClient) { }
 
   ngOnInit() {
     this.loadFromLocalStorage();
   }
 
+  public filesControl = new FileUploadControl().setListVisibility(false);
+  
   env = environment;
   public records: any[] = [];
   highlight_index: number;
@@ -118,6 +124,18 @@ export class GalleryComponent implements OnInit {
     this.csvService.sendCSV({csv: x, header: ['filepath', 'pred_gradability', 'pred_area', 'pred_site']});
   }
 
+  async auto_upload(event) {
+    if (this.uploadedFiles.length > 0) {
+      // Avoid dynamic changes
+      let length_total = this.uploadedFiles.length
+      for (let i = 0; i < length_total; i ++) {
+        // It is not a bug, it will always upload the first then delete it from the list
+        await this._upload_one(this.uploadedFiles[0])
+        this.filesControl.removeFile(this.uploadedFiles[0])
+      }
+    }
+  }
+
   async upload(event) {
     let fs: FileList = event.srcElement.files;
     for (let i = 0; i < fs.length; i ++) {
@@ -125,12 +143,19 @@ export class GalleryComponent implements OnInit {
     }
   }
 
-  async _upload_one(f) {
+  async _upload_one(f: File) {
     this.highlight_index = undefined;
-    const resizedImage: Blob = await resizeImage({
-        file: f,
-        maxSize: 400
-    });
+    let resizedImage: Blob
+    try {
+      resizedImage = await resizeImage({
+          file: f,
+          maxSize: 400
+      });
+    } catch (err) {
+      alert(`${f.name} is not an image.`);
+      this.filesControl.removeFile(f);
+      return
+    }
     f = new File([resizedImage], f.name)
     const formData = new FormData();
     formData.append('file', f);
@@ -226,7 +251,7 @@ function resizeImage(settings: IResizeImageOptions): Promise<Blob> {
   };
   return new Promise((ok, no) => {
     if (!file.type.match(/image.*/)) {
-      no(new Error("Not an image"));
+      no(`${file.name} is not an image`);
       return;
     }
     reader.onload = (readerEvent: ProgressEvent) => {
