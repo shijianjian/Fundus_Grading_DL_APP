@@ -193,7 +193,15 @@ export class GalleryComponent implements OnInit {
         current_header = ['__data_uploaded_tag__'].concat(current_header);
       }
       current_csv = [{'filepath': data['path'], '__data_uploaded_tag__': true}].concat(current_csv);
-      localStorage.setItem(data['path'], JSON.stringify({'base64_src': data['image'], 'base64_img_size': (data['image'].length / 4) * 3 / 1024, '__data_uploaded_tag__': true}));
+      try{
+        localStorage.setItem(data['path'], JSON.stringify(
+          {'base64_src': data['image'], 'base64_img_size': (data['image'].length / 4) * 3 / 1024, '__data_uploaded_tag__': true}));
+      } catch (e) {
+        if ( e.code === "22" || e.code === "1024") {
+          //data wasn't successfully saved due to quota exceed so throw an error
+          alert('Quota exceeded! Please remove previous data or expand localstorage quota if needed.');
+        }
+      }
       this.csvService.sendCSV({csv: current_csv, header: current_header});
     });
   }

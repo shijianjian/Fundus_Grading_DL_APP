@@ -4,5 +4,5 @@
 }
 
 .gallery-file-item:hover span:after {
-    content: ' (delete)';
+    content: ' (remove)';
   }

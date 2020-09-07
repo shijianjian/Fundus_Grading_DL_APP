@@ -6,10 +6,13 @@
 <button *ngIf="!env.production" mat-button color="warn" (click)="loadSamples()">Load Samples</button>
 
 <div style="display: flex; justify-content: space-between;">
-    <file-upload style="width: 40em; height: 10em;"
-        [(ngModel)]="uploadedFiles" (change)="auto_upload($event)" [control]="filesControl" multiple="true" animation="true"></file-upload>
-    <div class="file-list" style="height: 10em; overflow-y:scroll;" *ngIf="filesControl.value.length > 0">
-        <div style="float: left;">Waiting List: {{uploadedFiles.length}} (click name to remove)</div>
+    <file-upload style="width: 40em; height: 5em;"
+        [(ngModel)]="uploadedFiles" [control]="filesControl" multiple="true" animation="true"></file-upload>
+    <div class="file-list" style="height: 5em; overflow-y:scroll;" *ngIf="filesControl.value.length > 0">
+        <div style="display: flex;">
+            <div style="line-height: 2.5em;">Waiting List: {{uploadedFiles.length}}</div>
+            <button mat-button color="warn" (click)="auto_upload()">Upload</button>
+        </div>
         <div class="file-item gallery-file-item" 
             style="cursor: pointer;"
             *ngFor="let file of uploadedFiles"
