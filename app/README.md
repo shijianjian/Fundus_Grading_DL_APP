@@ -2,7 +2,7 @@
 
 This is an product-ready application for grading fundus photos using Angular and Flask. Deep learning models were trained with MobileNet and DenseNet in Keras and compressed with Tensorflow Lite.
 
-The application aims for a desktop use or data server use to avoid cloud computation cost. It therefore heavily used the file system by the Flask backend. For using uploaded images, it will be stored under <b>localStorage</b> with a client-side image compressing, errors may occur if you exceeds the quota, which is diversed from browser to browser. For using backend CSVs, it will send the full-sized images without any preprocessing.
+The application aims for a desktop use or a data server use to avoid cloud computation cost. It therefore heavily used the file system by the Flask backend. For using uploaded images, it will be stored under <b>localStorage</b> with a client-side image compressing, errors may occur if you exceeds the quota, which is diversed from browser to browser. For using backend CSVs, it will send the full-sized images without any preprocessing.
 
 Sample Images can be found from [EyePACS dataset](https://www.kaggle.com/c/diabetic-retinopathy-detection).
 
@@ -29,8 +29,13 @@ Sample Images can be found from [EyePACS dataset](https://www.kaggle.com/c/diabe
 Note: <b>If using self-provided fundus photos, you must provide a .csv file with a column named 'filepath'.</b>
 
 ## Remark
-Can't run on some CPUs since it is not supported for Tensorflow AVX instructions.
+a. Can't run on some CPUs since it is not supported for Tensorflow AVX instructions.
+b. Try right-click the refresh button, then press ```Hard Reload``` if anything unexpected in the first place.
 
+## Packaging
+```bash
+$ sh package_up.sh
+```
 
 ## Deployment
 To access from the outside, please update the ip address accordingly in ```/frontend/src/environments/environment.ts```.
